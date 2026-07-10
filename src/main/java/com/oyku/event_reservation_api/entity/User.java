@@ -41,5 +41,5 @@ public class User extends BaseEntity {
 	@Enumerated(EnumType.STRING)
 	@CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
 	@Column(name = "role")
-	private Set<Role> roles = new HashSet<>();
+	private Set<Role> role = new HashSet<>();
 }
