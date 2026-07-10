@@ -108,15 +108,6 @@ public class EventServiceImpl implements EventService {
 
 		return seatMapperImpl.toResponseList(event.getSeats());
 	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
 
 	@Override
 	public Event findEventbyIdOrThrow(Long id) {
