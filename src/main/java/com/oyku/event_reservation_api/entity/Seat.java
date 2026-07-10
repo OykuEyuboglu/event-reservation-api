@@ -1,6 +1,6 @@
 package com.oyku.event_reservation_api.entity;
 
-import com.oyku.event_reservation_api.enums.ReservationStatus;
+import com.oyku.event_reservation_api.enums.SeatStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -34,7 +34,7 @@ public class Seat extends BaseEntity {
 
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)
-	private ReservationStatus status;
+	private SeatStatus status;
 
 	@Column(name = "seat_number", nullable = false, length = 10)
 	private String seatNumber;
