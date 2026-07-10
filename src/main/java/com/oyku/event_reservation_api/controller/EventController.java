@@ -44,7 +44,7 @@ public class EventController {
 	}
 	
 	@GetMapping("/{id}")
-	public ResponseEntity<EventResponse> getPostById(@PathVariable Long id) {
+	public ResponseEntity<EventResponse> getEventById(@PathVariable Long id) {
 
 		EventResponse post = eventService.getEventById(id);
 
