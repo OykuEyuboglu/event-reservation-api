@@ -22,27 +22,24 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Entity
 @Builder
+@Entity
 @Table(name = "users")
-public class User extends BaseEntity{
+public class User extends BaseEntity {
 
-    @Column(name = "name", nullable = false, length = 50)
-    private String name;
-    
-    @Column(unique= true, nullable = false, length = 100)
-    private String email;
-    
-    @Column(nullable = false)
-    private String passwordHash;
-    
-    @Builder.Default
-    @ElementCollection(fetch = FetchType.EAGER)
-    @Enumerated(EnumType.STRING)
-    @CollectionTable(
-        name = "user_roles",
-        joinColumns = @JoinColumn(name = "user_id")
-    )
-    @Column(name = "role")
-    private Set<Role> roles = new HashSet<>();
+	@Column(name = "name", nullable = false, length = 50)
+	private String name;
+
+	@Column(unique = true, nullable = false, length = 100)
+	private String email;
+
+	@Column(nullable = false)
+	private String passwordHash;
+
+	@Builder.Default
+	@ElementCollection(fetch = FetchType.EAGER)
+	@Enumerated(EnumType.STRING)
+	@CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
+	@Column(name = "role")
+	private Set<Role> roles = new HashSet<>();
 }

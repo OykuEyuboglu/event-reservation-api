@@ -25,30 +25,24 @@ import lombok.Setter;
 @Entity
 @Table(name = "events")
 @EqualsAndHashCode(callSuper = true)
-public class Event extends BaseEntity{
+public class Event extends BaseEntity {
 
-	@Column(nullable = false, unique = true, length = 50)
-    private String name;
-    
-    @Column(nullable = false, length = 100)
-    private String location;
-    
-    @Column(nullable = false, length = 200)
-    private String address;
-    
-    @Column(nullable = false)
+	@Column(nullable = false, length = 50)
+	private String name;
+
+	@Column(nullable = false, length = 100)
+	private String location;
+
+	@Column(nullable = false, length = 200)
+	private String address;
+
+	@Column(nullable = false)
 	private LocalDateTime eventDate;
-	
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal ticketPrice;
-    
-    @Builder.Default
-    @OneToMany(
-    		mappedBy = "event",
-    		cascade = CascadeType.ALL,
-    		orphanRemoval = true,
-    		fetch = FetchType.LAZY
-    		)
-    private List<Seat> seats = new ArrayList<>();
-    
+
+	@Column(nullable = false, precision = 10, scale = 2)
+	private BigDecimal ticketPrice;
+
+	@Builder.Default
+	@OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+	private List<Seat> seats = new ArrayList<>();
 }
