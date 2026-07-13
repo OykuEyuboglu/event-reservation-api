@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -19,16 +20,19 @@ import com.oyku.event_reservation_api.dto.event.EventUpdateRequest;
 import com.oyku.event_reservation_api.dto.seat.SeatResponse;
 import com.oyku.event_reservation_api.service.EventService;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/events")
 @RequiredArgsConstructor
+@SecurityRequirement(name = "bearerAuth")
 public class EventController {
 
 	private final EventService eventService;
 	
+	@PreAuthorize("hasRole('ADMIN')")
 	@PostMapping
 	public ResponseEntity<EventResponse> createEvent(@Valid @RequestBody EventCreateRequest eventCreateRequest){
 		
@@ -51,6 +55,7 @@ public class EventController {
 		return ResponseEntity.ok(post);
 	}
 	
+	@PreAuthorize("hasRole('ADMIN')")
 	@PatchMapping("/{id}")
 	public ResponseEntity<EventResponse> updatedEvent(@PathVariable Long id, @Valid @RequestBody EventUpdateRequest eventUpdateRequest){
 		
@@ -58,13 +63,13 @@ public class EventController {
 		return ResponseEntity.ok(updatedEvent);
 	}
 	
+	@PreAuthorize("hasRole('ADMIN')")
 	@DeleteMapping("/{id}")
 	public ResponseEntity<Void> deleteEvent(@PathVariable Long id){
 		eventService.deleteEvents(id);
 		return ResponseEntity.noContent().build();
 	}
 	
-
 	@GetMapping("/{id}/seats")
 	public ResponseEntity<List<SeatResponse>> getAllSeatsById(@PathVariable Long id){
 		
