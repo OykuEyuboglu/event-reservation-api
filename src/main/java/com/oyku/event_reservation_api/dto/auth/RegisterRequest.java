@@ -1,5 +1,6 @@
 package com.oyku.event_reservation_api.dto.auth;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -19,7 +20,9 @@ public class RegisterRequest {
 	@Size(max = 100)
 	private String name;
 	
-	@NotBlank
+	@Email(message = "Invalid email format.")
+	@NotBlank(message = "Email is required.")
+	@Size(max = 100)
 	private String email;
 	
 	@NotBlank

@@ -15,7 +15,6 @@ public interface UserMapper {
 	@Mapping(target = "passwordHash", ignore = true)
 	User toEntity(RegisterRequest request);
 	
-	@Mapping(target = "role", ignore = true)
 	RegisterResponse toRegisterResponse(User user);
 	
 	UserResponse toUserResponse(User user);
