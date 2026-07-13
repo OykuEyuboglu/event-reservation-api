@@ -1,5 +1,9 @@
 package com.oyku.event_reservation_api.service.impl;
 
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -10,11 +14,9 @@ import com.oyku.event_reservation_api.dto.auth.RegisterResponse;
 import com.oyku.event_reservation_api.entity.User;
 import com.oyku.event_reservation_api.enums.Role;
 import com.oyku.event_reservation_api.exception.ConflictException;
-import com.oyku.event_reservation_api.mapper.EventMapper;
-import com.oyku.event_reservation_api.mapper.SeatMapperImpl;
 import com.oyku.event_reservation_api.mapper.UserMapper;
-import com.oyku.event_reservation_api.repository.EventRepository;
 import com.oyku.event_reservation_api.repository.UserRepository;
+import com.oyku.event_reservation_api.security.jwt.JwtService;
 import com.oyku.event_reservation_api.service.AuthService;
 
 import lombok.RequiredArgsConstructor;
@@ -26,31 +28,40 @@ public class AuthServiceImpl implements AuthService {
 	private final UserRepository userRepository;
 	private final UserMapper userMapper;
 	private final PasswordEncoder passwordEncoder;
+	private final AuthenticationManager authenticationManager;
+	private final JwtService jwtService;
 
 	@Override
 	public RegisterResponse register(RegisterRequest request) {
 
-	    if (userRepository.existsByEmail(request.getEmail())) {
-	        throw new ConflictException("Email already exists.");
-	    }
+		if (userRepository.existsByEmail(request.getEmail())) {
+			throw new ConflictException("Email already exists.");
+		}
 
-	    User user = userMapper.toEntity(request);
+		User user = userMapper.toEntity(request);
 
-	    user.setPasswordHash(
-	            passwordEncoder.encode(request.getPassword())
-	    );
+		user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
 
-	    user.getRole().add(Role.USER);
+		user.getRole().add(Role.USER);
 
-	    User savedUser = userRepository.save(user);
+		User savedUser = userRepository.save(user);
 
-	    return userMapper.toRegisterResponse(savedUser);
+		return userMapper.toRegisterResponse(savedUser);
 
 	}
 
-	 @Override
-	    public AuthResponse login(LoginRequest request) {
-	        throw new UnsupportedOperationException("Login not implemented yet.");
-	    }
+	@Override
+	public AuthResponse login(LoginRequest request) {
+
+		Authentication authentication = authenticationManager
+				.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
+
+		UserDetails user = (UserDetails) authentication.getPrincipal();
+
+		String token = jwtService.generateToken(user);
+
+		return AuthResponse.builder().token(token).build();
+
+	}
 
 }
