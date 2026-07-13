@@ -6,11 +6,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.oyku.event_reservation_api.dto.auth.AuthResponse;
 import com.oyku.event_reservation_api.dto.auth.LoginRequest;
 import com.oyku.event_reservation_api.dto.auth.RegisterRequest;
 import com.oyku.event_reservation_api.dto.auth.RegisterResponse;
+import com.oyku.event_reservation_api.dto.user.UserResponse;
 import com.oyku.event_reservation_api.entity.User;
 import com.oyku.event_reservation_api.enums.Role;
 import com.oyku.event_reservation_api.exception.ConflictException;
@@ -62,6 +64,14 @@ public class AuthServiceImpl implements AuthService {
 
 		return AuthResponse.builder().token(token).build();
 
+	}
+
+	
+	@Override
+	@Transactional(readOnly = true)
+	public UserResponse getCurrentUser() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
