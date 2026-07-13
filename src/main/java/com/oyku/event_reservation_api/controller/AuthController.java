@@ -1,5 +1,7 @@
 package com.oyku.event_reservation_api.controller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,17 +24,21 @@ import lombok.RequiredArgsConstructor;
 public class AuthController {
 
 	private final AuthService authService;
-
+	private static final Logger LOGGER =
+	        LoggerFactory.getLogger(AuthService.class);
+	
 	@PostMapping("/register")
 	public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
-		System.out.println("register endpoint called");
+		
+		LOGGER.info("register endpoint called");
 		RegisterResponse response = authService.register(request);
 		return ResponseEntity.status(HttpStatus.CREATED).body(response);
 	}
 
 	@PostMapping("/login")
 	public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-		System.out.println("login endpoint called");
+
+		LOGGER.info("Login endpoint called");
 		AuthResponse response = authService.login(request);
 		return ResponseEntity.ok(response);
 	}

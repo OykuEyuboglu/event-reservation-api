@@ -15,9 +15,7 @@ import lombok.Setter;
 @Builder
 public class ErrorResponse {
 
-    @Builder.Default
-    private LocalDateTime timestamp = LocalDateTime.now();
-
+    private LocalDateTime timestamp;
     private int status;
 	private String error;
 	private String path;

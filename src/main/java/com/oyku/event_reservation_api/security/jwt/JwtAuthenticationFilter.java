@@ -2,6 +2,8 @@ package com.oyku.event_reservation_api.security.jwt;
 
 import java.io.IOException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -22,7 +24,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
+    private static final Logger LOGGER = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
+    
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -30,11 +34,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain)
             throws ServletException, IOException {
     	
-    	System.out.println("JWT filter triggered for URI:" + request.getRequestURI());
+    	LOGGER.debug("JWT filter triggered for URI: {}", request.getRequestURI());
     	
     	final String authHeader = request.getHeader("Authorization");
 
-    	System.out.println("AUTH HEADER: " + authHeader);
+    	LOGGER.debug("Authorization header: {}", authHeader);
     	
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
@@ -43,26 +47,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         final String jwt = authHeader.substring(7);
 
-        System.out.println("TOKEN: " + jwt);
+        LOGGER.debug("TOKEN:", jwt);
         
         final String userEmail =
                 jwtService.extractUsername(jwt);
         
-        System.out.println("EMAIL FROM TOKEN: " + userEmail);
+        LOGGER.debug("EMAIL FROM TOKEN:", userEmail);
 
         if (userEmail != null &&
                 SecurityContextHolder.getContext().getAuthentication() == null) {
-
-        	System.out.println("USER DETAILS LOADING");
         	
             UserDetails userDetails =
                     userDetailsService.loadUserByUsername(userEmail);
 
             if (jwtService.isTokenValid(jwt, userDetails)) {
 
-            	System.out.println("TOKEN VALID");
+                LOGGER.info("TOKEN VALID");
+
                 System.out.println("AUTHORITIES : " + userDetails.getAuthorities());
-                
+                LOGGER.debug("AUTHORITIES:" + userDetails.getAuthorities());
+
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(
                                 userDetails,
