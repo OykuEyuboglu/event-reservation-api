@@ -90,15 +90,22 @@ public class ReservationServiceImpl implements ReservationService {
 	@Override
 	@Transactional(readOnly = true)
 	public ReservationResponse getReservationById(Long id) {
-		// TODO Auto-generated method stub
-		return null;
+
+		Reservation reservation = reservationRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Reservation does not exist"));
+		
+		return reservationMapper.toResponse(reservation);
 	}
 
 	@Override
 	@Transactional
 	public void cancelReservation(Long id) {
-		// TODO Auto-generated method stub
 
+		Reservation reservation = reservationRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Reservation does not exist"));
+		
+		Seat seat = reservation.getSeat();
+		seat.setStatus(SeatStatus.AVAILABLE);
+		
+		reservation.setStatus(ReservationStatus.CANCELLED);
+		reservationRepository.save(reservation);
 	}
-
 }
