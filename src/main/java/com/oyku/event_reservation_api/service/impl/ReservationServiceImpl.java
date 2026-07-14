@@ -40,14 +40,14 @@ public class ReservationServiceImpl implements ReservationService {
 	private final EventRepository eventRepository;
 	private final ReservationMapper reservationMapper;
 
-	private static final Logger log =
+	private static final Logger LOGGER =
 	        LoggerFactory.getLogger(ReservationServiceImpl.class);
 	
 	@Override
 	@Transactional
 	public ReservationResponse createReservation(ReservationCreateRequest request) {
 
-		log.info("Create reservation started");
+		LOGGER.info("Create reservation started");
 		
 		Reservation reservation = reservationMapper.toEntity(request);
 
@@ -72,10 +72,10 @@ public class ReservationServiceImpl implements ReservationService {
 
 		seat.setStatus(SeatStatus.HELD);
 		seatRepository.save(seat);
-		log.info("Seat updated");
+		LOGGER.info("Seat updated");
 
 		Reservation savedReservation = reservationRepository.save(reservation);
-		log.info("Reservation created");
+		LOGGER.info("Reservation created");
 		return reservationMapper.toResponse(savedReservation);
 		
 		} catch (ObjectOptimisticLockingFailureException e) {
@@ -121,5 +121,28 @@ public class ReservationServiceImpl implements ReservationService {
 		
 		reservation.setStatus(ReservationStatus.CANCELLED);
 		reservationRepository.save(reservation);
+	}
+	
+	@Override
+	@Transactional
+	public void expireReservations() {
+		
+	List<Reservation> expireReservations = reservationRepository.findByStatusAndExpiresAtBefore(ReservationStatus.RESERVED, LocalDateTime.now());
+	
+		if(expireReservations.isEmpty()) {
+			LOGGER.info("No expired reservations found");
+			return;
+		}	
+		
+		for (Reservation reservation : expireReservations) {
+			
+			reservation.setStatus(ReservationStatus.EXPIRED);
+			
+			Seat seat = reservation.getSeat();
+			seat.setStatus(SeatStatus.AVAILABLE);
+		}
+		
+		LOGGER.info("{} reservation(s) expired.", expireReservations.size());
+		reservationRepository.saveAll(expireReservations);	
 	}
 }

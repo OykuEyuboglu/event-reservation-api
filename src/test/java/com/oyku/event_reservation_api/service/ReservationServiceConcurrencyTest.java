@@ -35,7 +35,7 @@ class ReservationServiceConcurrencyTest {
 	private ReservationRepository reservationRepository;
 	
 	@Autowired
-	private static final Logger log =
+	private static final Logger LOGGER =
 	        LoggerFactory.getLogger(ReservationServiceImpl.class);
 
 	@Test
@@ -43,7 +43,7 @@ class ReservationServiceConcurrencyTest {
 
 		ReservationCreateRequest request = new ReservationCreateRequest();
 		request.setEventId(2L);
-		request.setSeatId(12L);
+		request.setSeatId(13L);
 
 		SecurityContext context = SecurityContextHolder.createEmptyContext();
 		context.setAuthentication(
@@ -55,10 +55,11 @@ class ReservationServiceConcurrencyTest {
 
 			try {
 				reservationService.createReservation(request);
+				LOGGER.error("SUCCESS: First reservation");
 				return true;
 				
 			} catch (Exception e) {
-		        log.error("FIRST FAILED");
+				LOGGER.error("FAILED: Reservation failed for first request");
 				return false;
 			}
 
@@ -68,10 +69,11 @@ class ReservationServiceConcurrencyTest {
 
 			try {
 				reservationService.createReservation(request);
+				LOGGER.error("SUCCESS: Second reservation");
 				return true;
 
 			} catch (Exception e) {
-		        log.error("SECOND FAILED");
+				LOGGER.error("FAILED: Reservation failed for second request");
 				return false;
 			}
 
@@ -83,8 +85,8 @@ class ReservationServiceConcurrencyTest {
 		boolean firstResult = (boolean) first.get();
 		boolean secondResult = (boolean) second.get();
 
-        log.info("FIRST RESULT:" + firstResult);
-        log.info("SECOND RESULT:" + secondResult);
+		LOGGER.info("FIRST Reservation RESULT:" + firstResult);
+		LOGGER.info("SECOND Reservation RESULT:" + secondResult);
 		
 		executor.shutdown();
 
