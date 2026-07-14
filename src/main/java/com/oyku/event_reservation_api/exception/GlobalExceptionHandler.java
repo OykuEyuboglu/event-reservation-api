@@ -55,4 +55,55 @@ public class GlobalExceptionHandler {
 
 		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
 	}
+
+	@ExceptionHandler(BadRequestException.class)
+	public ResponseEntity<ErrorResponse> handleBadRequestException(BadRequestException exception,
+			HttpServletRequest request) {
+
+		ErrorResponse response = new ErrorResponse(LocalDateTime.now(), HttpStatus.BAD_REQUEST.value(), "Bad Request",
+				request.getRequestURI(), exception.getMessage());
+
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+	}
+
+	@ExceptionHandler(ConflictException.class)
+
+	public ResponseEntity<ErrorResponse> handleConflictException(
+
+			ConflictException exception, HttpServletRequest request) {
+		ErrorResponse response = new ErrorResponse(LocalDateTime.now(), HttpStatus.CONFLICT.value(), "Conflict",
+				request.getRequestURI(), exception.getMessage());
+
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+	}
+
+	@ExceptionHandler(ForbiddenException.class)
+	public ResponseEntity<ErrorResponse> handleForbiddenException(
+
+			ForbiddenException exception, HttpServletRequest request) {
+		ErrorResponse response = new ErrorResponse(LocalDateTime.now(), HttpStatus.FORBIDDEN.value(), "Forbidden",
+				request.getRequestURI(), exception.getMessage());
+
+		return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+	}
+
+	@ExceptionHandler(UnauthorizedException.class)
+	public ResponseEntity<ErrorResponse> handleUnauthorizedException(
+
+			UnauthorizedException exception, HttpServletRequest request) {
+		ErrorResponse response = new ErrorResponse(LocalDateTime.now(), HttpStatus.UNAUTHORIZED.value(), "Unauthorized",
+				request.getRequestURI(), exception.getMessage());
+
+		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+	}
+
+	@ExceptionHandler(Exception.class)
+	public ResponseEntity<ErrorResponse> handleGeneralException(
+
+			Exception exception, HttpServletRequest request) {
+		ErrorResponse response = new ErrorResponse(LocalDateTime.now(), HttpStatus.INTERNAL_SERVER_ERROR.value(),
+				"Internal Server Error", request.getRequestURI(), exception.getMessage());
+		
+		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+	}
 }
