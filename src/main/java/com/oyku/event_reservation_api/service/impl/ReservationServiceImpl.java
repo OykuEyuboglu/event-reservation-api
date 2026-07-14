@@ -3,6 +3,9 @@ package com.oyku.event_reservation_api.service.impl;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -37,12 +40,18 @@ public class ReservationServiceImpl implements ReservationService {
 	private final EventRepository eventRepository;
 	private final ReservationMapper reservationMapper;
 
+	private static final Logger log =
+	        LoggerFactory.getLogger(ReservationServiceImpl.class);
+	
 	@Override
 	@Transactional
 	public ReservationResponse createReservation(ReservationCreateRequest request) {
 
+		log.info("Create reservation started");
+		
 		Reservation reservation = reservationMapper.toEntity(request);
 
+		try {
 		Event event = eventRepository.findById(request.getEventId())
 				.orElseThrow(() -> new ResourceNotFoundException("Event does not exist"));
 
@@ -52,7 +61,7 @@ public class ReservationServiceImpl implements ReservationService {
 		User user = getCurrentUser();
 
 		if (seat.getStatus() != SeatStatus.AVAILABLE) {
-			throw new ConflictException("Seat is already reserved.");
+			throw new ConflictException("Seat is not available for reservation.");
 		}
 
 		reservation.setSeat(seat);
@@ -63,10 +72,15 @@ public class ReservationServiceImpl implements ReservationService {
 
 		seat.setStatus(SeatStatus.HELD);
 		seatRepository.save(seat);
+		log.info("Seat updated");
 
 		Reservation savedReservation = reservationRepository.save(reservation);
-
+		log.info("Reservation created");
 		return reservationMapper.toResponse(savedReservation);
+		
+		} catch (ObjectOptimisticLockingFailureException e) {
+			throw new ConflictException("Seat is already reserved");
+		}
 	}
 
 	@Override

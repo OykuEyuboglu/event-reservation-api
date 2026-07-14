@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.oyku.event_reservation_api.dto.event.EventResponse;
 import com.oyku.event_reservation_api.dto.reservation.ReservationCreateRequest;
 import com.oyku.event_reservation_api.dto.reservation.ReservationResponse;
 import com.oyku.event_reservation_api.service.AuthService;
