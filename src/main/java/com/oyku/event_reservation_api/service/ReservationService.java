@@ -8,7 +8,7 @@ public interface ReservationService {
 
 	ReservationResponse createReservation(ReservationCreateRequest request);
 
-	List<ReservationResponse> getReservations();
+	List<ReservationResponse> getCurrentUserReservations();
 
 	ReservationResponse getReservationById(Long id);
 
