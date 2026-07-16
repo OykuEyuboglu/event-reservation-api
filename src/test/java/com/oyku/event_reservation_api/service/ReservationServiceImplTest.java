@@ -58,6 +58,13 @@ public class ReservationServiceImplTest {
 	@InjectMocks
 	private ReservationServiceImpl reservationServiceImpl;
 
+
+	private static final String EMAİL = "email22@gmail.com";
+	private static final Long SEAT_ID = 29L;
+	private static final Long EVENT_ID = 2L;
+	private static final String SEAT_NUMBER = "A1";
+	private static final LocalDateTime EXPIRES_AT = LocalDateTime.now().plusMinutes(10);
+	
 	@Test
 	void shouldCreateReservationSuccessfully() {
 
@@ -159,7 +166,7 @@ public class ReservationServiceImplTest {
 		Reservation reservation = new Reservation();
 		reservation.setId(1L);
 		reservation.setStatus(ReservationStatus.RESERVED);
-		reservation.setExpiresAt(LocalDateTime.now().plusMinutes(10));
+		reservation.setExpiresAt(EXPIRES_AT);
 		reservation.setSeat(createSeat());
 		reservation.setEvent(createEvent());
 		reservation.setUser(createUser());
@@ -169,7 +176,7 @@ public class ReservationServiceImplTest {
 	private User createUser() {
 		User user = new User();
 		user.setId(1L);
-		user.setEmail("email22@gmail.com");
+		user.setEmail(EMAİL);
 		user.setName("Test User");
 		user.setPasswordHash("password2");
 		user.setRole(Set.of(Role.USER));
@@ -178,8 +185,8 @@ public class ReservationServiceImplTest {
 
 	private Seat createSeat() {
 		Seat seat = new Seat();
-		seat.setId(29L);
-		seat.setSeatNumber("A1");
+		seat.setId(SEAT_ID);
+		seat.setSeatNumber(SEAT_NUMBER);
 		seat.setStatus(SeatStatus.AVAILABLE);
 		seat.setVersion(0L);
 		return seat;
@@ -187,24 +194,24 @@ public class ReservationServiceImplTest {
 
 	private Event createEvent() {
 		Event event = new Event();
-		event.setId(2L);
+		event.setId(EVENT_ID);
 		event.setName("Concert");
 		event.setAddress("Ankara");
 		event.setLocation("Arena");
 		event.setTicketPrice(BigDecimal.valueOf(500));
-		event.setEventDate(LocalDateTime.now().plusDays(5));
+		event.setEventDate(EXPIRES_AT);
 		return event;
 	}
 
 	private ReservationResponse createResponse() {
 		ReservationResponse response = new ReservationResponse();
 		response.setId(1L);
-		response.setEventId(2L);
-		response.setSeatId(29L);
-		response.setSeatNumber("A1");
+		response.setEventId(EVENT_ID);
+		response.setSeatId(SEAT_ID);
+		response.setSeatNumber(SEAT_NUMBER);
 		response.setStatus(ReservationStatus.RESERVED);
 		response.setEventName("Concert");
-		response.setExpiresAt(LocalDateTime.now().plusMinutes(10));
+		response.setExpiresAt(EXPIRES_AT);
 		return response;
 	}
 }
