@@ -20,6 +20,7 @@ import com.oyku.event_reservation_api.entity.User;
 import com.oyku.event_reservation_api.enums.ReservationStatus;
 import com.oyku.event_reservation_api.enums.SeatStatus;
 import com.oyku.event_reservation_api.exception.ConflictException;
+import com.oyku.event_reservation_api.exception.ForbiddenException;
 import com.oyku.event_reservation_api.exception.ResourceNotFoundException;
 import com.oyku.event_reservation_api.mapper.ReservationMapper;
 import com.oyku.event_reservation_api.repository.EventRepository;
@@ -40,44 +41,41 @@ public class ReservationServiceImpl implements ReservationService {
 	private final EventRepository eventRepository;
 	private final ReservationMapper reservationMapper;
 
-	private static final Logger LOGGER =
-	        LoggerFactory.getLogger(ReservationServiceImpl.class);
-	
+	private static final Logger LOGGER = LoggerFactory.getLogger(ReservationServiceImpl.class);
+
 	@Override
 	@Transactional
 	public ReservationResponse createReservation(ReservationCreateRequest request) {
 
-		LOGGER.info("Create reservation started");
-		
 		Reservation reservation = reservationMapper.toEntity(request);
 
 		try {
-		Event event = eventRepository.findById(request.getEventId())
-				.orElseThrow(() -> new ResourceNotFoundException("Event does not exist"));
+			Event event = eventRepository.findById(request.getEventId())
+					.orElseThrow(() -> new ResourceNotFoundException("Event does not exist"));
 
-		Seat seat = seatRepository.findById(request.getSeatId())
-				.orElseThrow(() -> new ResourceNotFoundException("Seat does not exist"));
+			Seat seat = seatRepository.findById(request.getSeatId())
+					.orElseThrow(() -> new ResourceNotFoundException("Seat does not exist"));
 
-		User user = getCurrentUser();
+			User user = getCurrentUser();
 
-		if (seat.getStatus() != SeatStatus.AVAILABLE) {
-			throw new ConflictException("Seat is not available for reservation.");
-		}
+			if (seat.getStatus() != SeatStatus.AVAILABLE) {
+				throw new ConflictException("Seat is not available for reservation.");
+			}
 
-		reservation.setSeat(seat);
-		reservation.setEvent(event);
-		reservation.setUser(user);
-		reservation.setStatus(ReservationStatus.RESERVED);
-		reservation.setExpiresAt(LocalDateTime.now().plusMinutes(10));
+			reservation.setSeat(seat);
+			reservation.setEvent(event);
+			reservation.setUser(user);
+			reservation.setStatus(ReservationStatus.RESERVED);
+			reservation.setExpiresAt(LocalDateTime.now().plusMinutes(10));
 
-		seat.setStatus(SeatStatus.HELD);
-		seatRepository.save(seat);
-		LOGGER.info("Seat updated");
+			seat.setStatus(SeatStatus.HELD);
+			seatRepository.save(seat);
+			LOGGER.info("Seat updated");
 
-		Reservation savedReservation = reservationRepository.save(reservation);
-		LOGGER.info("Reservation created");
-		return reservationMapper.toResponse(savedReservation);
-		
+			Reservation savedReservation = reservationRepository.save(reservation);
+			LOGGER.info("Reservation created");
+			return reservationMapper.toResponse(savedReservation);
+
 		} catch (ObjectOptimisticLockingFailureException e) {
 			throw new ConflictException("Seat is already reserved");
 		}
@@ -105,44 +103,97 @@ public class ReservationServiceImpl implements ReservationService {
 	@Transactional(readOnly = true)
 	public ReservationResponse getReservationById(Long id) {
 
-		Reservation reservation = reservationRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Reservation does not exist"));
+		Reservation reservation = reservationRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Reservation does not exist"));
 		
 		return reservationMapper.toResponse(reservation);
 	}
 
 	@Override
 	@Transactional
-	public void cancelReservation(Long id) {
+	public ReservationResponse cancelReservation(Long id) {
+		
+		Reservation reservation = reservationRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Reservation does not exist."));
 
-		Reservation reservation = reservationRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Reservation does not exist"));
-		
+		User currentUser = getCurrentUser();
+
+		if (!reservation.getUser().getId().equals(currentUser.getId())) {
+			throw new ForbiddenException("You are not allowed to cancel this reservation.");
+		}
+
+		if (reservation.getStatus() == ReservationStatus.CANCELLED) {
+			throw new ConflictException("Reservation is already cancelled.");
+		}
+
+		if (reservation.getStatus() == ReservationStatus.EXPIRED) {
+			throw new ConflictException("Expired reservation can not be cancelled.");
+		}
+
 		Seat seat = reservation.getSeat();
-		seat.setStatus(SeatStatus.AVAILABLE);
-		
+
 		reservation.setStatus(ReservationStatus.CANCELLED);
+		seat.setStatus(SeatStatus.AVAILABLE);
+
+		seatRepository.save(seat);
 		reservationRepository.save(reservation);
+
+		LOGGER.info("Reservation cancelled successfully.");
+
+		return reservationMapper.toResponse(reservation);
 	}
-	
+
 	@Override
 	@Transactional
 	public void expireReservations() {
-		
-	List<Reservation> expireReservations = reservationRepository.findByStatusAndExpiresAtBefore(ReservationStatus.RESERVED, LocalDateTime.now());
-	
-		if(expireReservations.isEmpty()) {
+
+		List<Reservation> expireReservations = reservationRepository
+				.findByStatusAndExpiresAtBefore(ReservationStatus.RESERVED, LocalDateTime.now());
+
+		if (expireReservations.isEmpty()) {
 			LOGGER.info("No expired reservations found");
 			return;
-		}	
-		
+		}
+
 		for (Reservation reservation : expireReservations) {
-			
+
 			reservation.setStatus(ReservationStatus.EXPIRED);
-			
+
 			Seat seat = reservation.getSeat();
 			seat.setStatus(SeatStatus.AVAILABLE);
 		}
-		
+
 		LOGGER.info("{} reservation(s) expired.", expireReservations.size());
-		reservationRepository.saveAll(expireReservations);	
+		reservationRepository.saveAll(expireReservations);
+	}
+
+	@Override
+	@Transactional
+	public ReservationResponse confirmReservation(Long id) {
+		
+		Reservation reservation = reservationRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Reservation not found."));
+
+		User currentUser = getCurrentUser();
+
+		if (!reservation.getUser().getId().equals(currentUser.getId())) {
+			throw new ForbiddenException("You are not allowed to confirm this reservation.");
+		}
+
+		if (reservation.getStatus() != ReservationStatus.RESERVED) {
+			throw new ConflictException("Only held reservations can be confirmed.");
+		}
+
+		Seat seat = reservation.getSeat();
+
+		reservation.setStatus(ReservationStatus.CONFIRMED);
+		seat.setStatus(SeatStatus.SOLD);
+
+		seatRepository.save(seat);
+		reservationRepository.save(reservation);
+
+		LOGGER.info("Reservation confirmed successfully.");
+		
+		return reservationMapper.toResponse(reservation);
 	}
 }

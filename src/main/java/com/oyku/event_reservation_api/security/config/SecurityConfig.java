@@ -31,13 +31,11 @@ public class SecurityConfig {
     private final CustomAuthenticationEntryPoint authenticationEntryPoint;
     private final CustomAccessDeniedHandler accessDeniedHandler;
     
-    @Bean
-    public PasswordEncoder passwordEncoder() {
+    @Bean PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    @Bean
-    public AuthenticationProvider authenticationProvider() {
+    @Bean AuthenticationProvider authenticationProvider() {
 
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
 
@@ -46,16 +44,14 @@ public class SecurityConfig {
         return provider;
     }
 
-    @Bean
-    public AuthenticationManager authenticationManager(
+    @Bean AuthenticationManager authenticationManager(
             AuthenticationConfiguration configuration)
             throws Exception {
 
         return configuration.getAuthenticationManager();
     }
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http)
+    @Bean SecurityFilterChain securityFilterChain(HttpSecurity http)
             throws Exception {
 
         http
