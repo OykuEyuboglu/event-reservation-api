@@ -12,7 +12,7 @@ public class ReservationExpirationScheduler {
 
 	private final ReservationService reservationService;
 		
-	@Scheduled(fixedRate = 30000)
+	@Scheduled(fixedRate = 60000)
 	public void expireReservations() {
 		reservationService.expireReservations();
 	}

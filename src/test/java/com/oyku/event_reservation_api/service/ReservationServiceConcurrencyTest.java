@@ -13,9 +13,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.security.test.context.support.WithMockUser;
 
 import com.oyku.event_reservation_api.dto.reservation.ReservationCreateRequest;
+import com.oyku.event_reservation_api.enums.ReservationStatus;
 import com.oyku.event_reservation_api.repository.ReservationRepository;
 import com.oyku.event_reservation_api.service.impl.ReservationServiceImpl;
 
@@ -25,7 +25,6 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 @SpringBootTest
-@WithMockUser(username = "email22@gmail.com", roles = "USER")
 class ReservationServiceConcurrencyTest {
 
 	@Autowired
@@ -42,8 +41,8 @@ class ReservationServiceConcurrencyTest {
 	void shouldPreventDoubleReservation() throws InterruptedException, ExecutionException {
 
 		ReservationCreateRequest request = new ReservationCreateRequest();
-		request.setEventId(2L);
-		request.setSeatId(13L);
+		request.setEventId(5L);
+		request.setSeatId(1L);
 
 		SecurityContext context = SecurityContextHolder.createEmptyContext();
 		context.setAuthentication(
@@ -89,7 +88,12 @@ class ReservationServiceConcurrencyTest {
 		LOGGER.info("SECOND Reservation RESULT:" + secondResult);
 		
 		executor.shutdown();
+		
+		Long targetSeatId = request.getSeatId();
 
-		assertEquals(1, reservationRepository.count());
+		long activeReservationCountForThisSeat = reservationRepository.findAll().stream()
+		    .filter(r -> r.getSeat().getId().equals(targetSeatId) && r.getStatus() == ReservationStatus.RESERVED)
+		    .count();
+		assertEquals(1, activeReservationCountForThisSeat);
 	}
 }
