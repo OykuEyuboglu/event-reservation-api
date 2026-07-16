@@ -12,7 +12,9 @@ public interface ReservationService {
 
 	ReservationResponse getReservationById(Long id);
 
-	void cancelReservation(Long id);
+	ReservationResponse cancelReservation(Long id);
 	
 	void expireReservations();
+	
+	ReservationResponse confirmReservation(Long id);
 }
