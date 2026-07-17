@@ -4,7 +4,8 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,7 +55,7 @@ class SecurityIntegrationTest {
 	private EventCreateRequest createRequest() {
 
 		EventCreateRequest request = new EventCreateRequest();
-		request.setName("Rock Concert " + System.currentTimeMillis());
+		request.setName("Concert " + System.currentTimeMillis());
 		request.setAddress("Ankara");
 		request.setLocation("Arena");
 		request.setSeatCount(50);
