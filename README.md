@@ -1,6 +1,7 @@
 # 🎟️ Spring Boot Event Reservation REST API
  
 <div align="center">
+ 
 *A secure and scalable Event Reservation REST API built with Spring Boot, PostgreSQL, and Spring Security. The project demonstrates JWT authentication, role-based authorization, reservation management, optimistic locking for concurrency control, scheduled tasks, and comprehensive testing.*
  
 ![Java](https://img.shields.io/badge/Java-23-orange?style=for-the-badge&logo=openjdk)
@@ -15,6 +16,7 @@
 ![Mockito](https://img.shields.io/badge/Mockito-78A641?style=for-the-badge)
  
 </div>
+
 ---
  
 # 📌 Project Overview
@@ -93,10 +95,11 @@ Using Swagger UI, you can:
 ---
  
 # 📷 Swagger Preview
- g  
+
 ### Swagger Endpoint List
 
 <img src="images/swagger-home.png" width="40%" alt="Swagger UI Preview"/>
+
 ```
  
 ---
