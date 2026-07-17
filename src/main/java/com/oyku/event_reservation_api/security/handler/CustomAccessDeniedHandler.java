@@ -12,7 +12,7 @@ import com.oyku.event_reservation_api.exception.ErrorResponse;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Component
 public class CustomAccessDeniedHandler implements AccessDeniedHandler {
