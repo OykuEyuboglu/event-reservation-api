@@ -197,7 +197,8 @@ class ReservationServiceImplTest {
         User user = createUser();
         Reservation reservation = createReservation();
         ReservationResponse response = createResponse();
-
+        response.setStatus(ReservationStatus.CONFIRMED);
+        
         AddSecurity();
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
