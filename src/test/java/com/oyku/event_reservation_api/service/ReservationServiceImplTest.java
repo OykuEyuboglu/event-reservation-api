@@ -1,10 +1,8 @@
 package com.oyku.event_reservation_api.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -30,6 +28,8 @@ import com.oyku.event_reservation_api.entity.User;
 import com.oyku.event_reservation_api.enums.ReservationStatus;
 import com.oyku.event_reservation_api.enums.Role;
 import com.oyku.event_reservation_api.enums.SeatStatus;
+import com.oyku.event_reservation_api.exception.ConflictException;
+import com.oyku.event_reservation_api.exception.ResourceNotFoundException;
 import com.oyku.event_reservation_api.mapper.ReservationMapper;
 import com.oyku.event_reservation_api.repository.EventRepository;
 import com.oyku.event_reservation_api.repository.ReservationRepository;
@@ -38,180 +38,359 @@ import com.oyku.event_reservation_api.repository.UserRepository;
 import com.oyku.event_reservation_api.service.impl.ReservationServiceImpl;
 
 @ExtendWith(MockitoExtension.class)
-public class ReservationServiceImplTest {
+class ReservationServiceImplTest {
 
-	@Mock
-	private ReservationRepository reservationRepository;
+    @Mock
+    private ReservationRepository reservationRepository;
 
-	@Mock
-	private SeatRepository seatRepository;
+    @Mock
+    private SeatRepository seatRepository;
 
-	@Mock
-	private UserRepository userRepository;
+    @Mock
+    private UserRepository userRepository;
 
-	@Mock
-	private EventRepository eventRepository;
+    @Mock
+    private EventRepository eventRepository;
 
-	@Mock
-	private ReservationMapper reservationMapper;
+    @Mock
+    private ReservationMapper reservationMapper;
 
-	@InjectMocks
-	private ReservationServiceImpl reservationServiceImpl;
+    @InjectMocks
+    private ReservationServiceImpl reservationServiceImpl;
 
+    private static final String EMAIL = "email22@gmail.com";
+    private static final Long EVENT_ID = 2L;
+    private static final Long SEAT_ID = 29L;
+    private static final Long RESERVATION_ID = 1L;
+    private static final LocalDateTime EXPIRES_AT = LocalDateTime.now().plusMinutes(10);
 
-	private static final String EMAİL = "email22@gmail.com";
-	private static final Long SEAT_ID = 29L;
-	private static final Long EVENT_ID = 2L;
-	private static final String SEAT_NUMBER = "A1";
-	private static final LocalDateTime EXPIRES_AT = LocalDateTime.now().plusMinutes(10);
-	
-	@Test
-	void shouldCreateReservationSuccessfully() {
+    @Test
+    void shouldCreateReservationSuccessfully() {
 
-		ReservationCreateRequest request = createRequest();
+        ReservationCreateRequest request = createRequest();
+        Event event = createEvent();
+        Seat seat = createSeat();
+        User user = createUser();
+        Reservation reservation = createReservation();
+        ReservationResponse response = createResponse();
 
-		Event event = createEvent();
-		Seat seat = createSeat();
-		User user = createUser();
-		Reservation reservation = createReservation();
-		ReservationResponse response = createResponse();
+        AddSecurity();
 
-		SecurityContext context = SecurityContextHolder.createEmptyContext();
-		context.setAuthentication(
-				new UsernamePasswordAuthenticationToken("email22@gmail.com", null, List.of(() -> "ROLE_USER")));
+        when(reservationMapper.toEntity(request)).thenReturn(reservation);
+        when(eventRepository.findById(EVENT_ID)).thenReturn(Optional.of(event));
+        when(seatRepository.findById(SEAT_ID)).thenReturn(Optional.of(seat));
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(seatRepository.save(any())).thenReturn(seat);
+        when(reservationRepository.save(any())).thenReturn(reservation);
+        when(reservationMapper.toResponse(any())).thenReturn(response);
 
-		SecurityContextHolder.setContext(context);
+        ReservationResponse result =
+                reservationServiceImpl.createReservation(request);
 
-		when(eventRepository.findById(request.getEventId())).thenReturn(Optional.of(event));
+        assertNotNull(result);
+        assertEquals(ReservationStatus.RESERVED, result.getStatus());
+        assertEquals(EVENT_ID, result.getEventId());
+        assertEquals(SEAT_ID, result.getSeatId());
 
-		when(seatRepository.findById(request.getSeatId())).thenReturn(Optional.of(seat));
+        verify(eventRepository).findById(EVENT_ID);
+        verify(seatRepository).findById(SEAT_ID);
+        verify(userRepository).findByEmail(EMAIL);
+        verify(seatRepository).save(any());
+        verify(reservationRepository).save(any());
+        verify(reservationMapper).toResponse(any());
+    }
 
-		when(userRepository.findByEmail("email22@gmail.com")).thenReturn(Optional.of(user));
+    @Test
+    void shouldThrowWhenSeatNotAvailable() {
 
-		when(seatRepository.save(any(Seat.class))).thenReturn(seat);
+        ReservationCreateRequest request = createRequest();
+        Reservation reservation = createReservation();
+        Event event = createEvent();
+        Seat seat = createSeat();
+        User user = createUser();
 
-		when(reservationRepository.save(any(Reservation.class))).thenReturn(reservation);
-		when(reservationMapper.toEntity(request)).thenReturn(reservation);
-		when(reservationMapper.toResponse(any(Reservation.class))).thenReturn(response);
+        seat.setStatus(SeatStatus.HELD);
 
-		ReservationResponse result = reservationServiceImpl.createReservation(request);
-		assertNotNull(response);
+       AddSecurity();
 
-		assertEquals(ReservationStatus.RESERVED, result.getStatus());
-		assertEquals(request.getSeatId(), result.getSeatId());
-		assertEquals(request.getEventId(), result.getEventId());
-		verify(eventRepository).findById(request.getEventId());
+        when(reservationMapper.toEntity(request)).thenReturn(reservation);
+        when(eventRepository.findById(EVENT_ID)).thenReturn(Optional.of(event));
+        when(seatRepository.findById(SEAT_ID)).thenReturn(Optional.of(seat));
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
 
-		verify(seatRepository).findById(request.getSeatId());
+        assertThrows(
+                ConflictException.class,
+                () -> reservationServiceImpl.createReservation(request));
 
-		verify(userRepository).findByEmail("email22@gmail.com");
+        verify(reservationRepository, never()).save(any());
+    }
+    
+    
+    
+    @Test
+    void shouldGetCurrentUserReservationsSuccessfully() {
 
-		verify(seatRepository).save(any(Seat.class));
+        User user = createUser();
+        Reservation reservation = createReservation();
+        ReservationResponse response = createResponse();
 
-		verify(reservationRepository).save(any(Reservation.class));
+        List<Reservation> reservations = List.of(reservation);
+        List<ReservationResponse> responses = List.of(response);
 
-		verify(reservationMapper).toResponse(any(Reservation.class));
-	}
+        AddSecurity();
 
-	@Test
-	void shouldCurrentReservationSuccessfully() {
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(reservationRepository.findByUser(user)).thenReturn(reservations);
+        when(reservationMapper.toResponseList(reservations)).thenReturn(responses);
 
-		User user = createUser();
-		Reservation reservation = createReservation();
-		ReservationResponse response = createResponse();
+        List<ReservationResponse> result =
+                reservationServiceImpl.getCurrentUserReservations();
 
-		List<Reservation> reservations = List.of(reservation);
-		List<ReservationResponse> responses = List.of(response);
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(ReservationStatus.RESERVED, result.get(0).getStatus());
 
-		SecurityContext context = SecurityContextHolder.createEmptyContext();
-		context.setAuthentication(
-				new UsernamePasswordAuthenticationToken("email22@gmail.com", null, List.of(() -> "ROLE_USER")));
+        verify(userRepository).findByEmail(EMAIL);
+        verify(reservationRepository).findByUser(user);
+        verify(reservationMapper).toResponseList(reservations);
+    }
 
-		SecurityContextHolder.setContext(context);
-		when(userRepository.findByEmail("email22@gmail.com")).thenReturn(Optional.of(user));
+    @Test
+    void shouldGetReservationByIdSuccessfully() {
 
-		when(reservationRepository.findByUser(user)).thenReturn(reservations);
+        Reservation reservation = createReservation();
+        ReservationResponse response = createResponse();
 
-		when(reservationMapper.toResponseList(reservations)).thenReturn(responses);
+        when(reservationRepository.findById(RESERVATION_ID))
+                .thenReturn(Optional.of(reservation));
 
-		List<ReservationResponse> result = reservationServiceImpl.getCurrentUserReservations();
+        when(reservationMapper.toResponse(reservation))
+                .thenReturn(response);
 
-		assertNotNull(response);
-		assertEquals(1, result.size());
-		assertEquals(ReservationStatus.RESERVED, result.get(0).getStatus());
+        ReservationResponse result =
+                reservationServiceImpl.getReservationById(RESERVATION_ID);
 
-		assertNotNull(result);
+        assertNotNull(result);
+        assertEquals(RESERVATION_ID, result.getId());
 
-		assertEquals(1, result.size());
+        verify(reservationRepository).findById(RESERVATION_ID);
+        verify(reservationMapper).toResponse(reservation);
+    }
 
-		assertEquals(ReservationStatus.RESERVED, result.get(0).getStatus());
+    @Test
+    void shouldThrowWhenReservationNotFound() {
 
-		assertEquals("Concert", result.get(0).getEventName());
+        when(reservationRepository.findById(RESERVATION_ID))
+                .thenReturn(Optional.empty());
 
-		verify(userRepository).findByEmail("email22@gmail.com");
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> reservationServiceImpl.getReservationById(RESERVATION_ID));
 
-		verify(reservationRepository).findByUser(user);
+        verify(reservationRepository).findById(RESERVATION_ID);
+        verify(reservationMapper, never()).toResponse(any());
+    }
 
-		verify(reservationMapper).toResponseList(reservations);
-	}
+    @Test
+    void shouldConfirmReservationSuccessfully() {
 
-	private ReservationCreateRequest createRequest() {
-		ReservationCreateRequest request = new ReservationCreateRequest();
-		request.setEventId(2L);
-		request.setSeatId(29L);
-		return request;
-	}
+        User user = createUser();
+        Reservation reservation = createReservation();
+        ReservationResponse response = createResponse();
 
-	private Reservation createReservation() {
-		Reservation reservation = new Reservation();
-		reservation.setId(1L);
-		reservation.setStatus(ReservationStatus.RESERVED);
-		reservation.setExpiresAt(EXPIRES_AT);
-		reservation.setSeat(createSeat());
-		reservation.setEvent(createEvent());
-		reservation.setUser(createUser());
-		return reservation;
-	}
+        AddSecurity();
 
-	private User createUser() {
-		User user = new User();
-		user.setId(1L);
-		user.setEmail(EMAİL);
-		user.setName("Test User");
-		user.setPasswordHash("password2");
-		user.setRole(Set.of(Role.USER));
-		return user;
-	}
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(reservationRepository.findById(RESERVATION_ID))
+                .thenReturn(Optional.of(reservation));
 
-	private Seat createSeat() {
-		Seat seat = new Seat();
-		seat.setId(SEAT_ID);
-		seat.setSeatNumber(SEAT_NUMBER);
-		seat.setStatus(SeatStatus.AVAILABLE);
-		seat.setVersion(0L);
-		return seat;
-	}
+        when(seatRepository.save(any())).thenReturn(reservation.getSeat());
+        when(reservationRepository.save(any())).thenReturn(reservation);
+        when(reservationMapper.toResponse(any())).thenReturn(response);
 
-	private Event createEvent() {
-		Event event = new Event();
-		event.setId(EVENT_ID);
-		event.setName("Concert");
-		event.setAddress("Ankara");
-		event.setLocation("Arena");
-		event.setTicketPrice(BigDecimal.valueOf(500));
-		event.setEventDate(EXPIRES_AT);
-		return event;
-	}
+        ReservationResponse result =
+                reservationServiceImpl.confirmReservation(RESERVATION_ID);
 
-	private ReservationResponse createResponse() {
-		ReservationResponse response = new ReservationResponse();
-		response.setId(1L);
-		response.setEventId(EVENT_ID);
-		response.setSeatId(SEAT_ID);
-		response.setSeatNumber(SEAT_NUMBER);
-		response.setStatus(ReservationStatus.RESERVED);
-		response.setEventName("Concert");
-		response.setExpiresAt(EXPIRES_AT);
-		return response;
-	}
+        assertNotNull(result);
+        assertEquals(ReservationStatus.CONFIRMED, result.getStatus());
+        assertEquals(RESERVATION_ID, result.getId());
+        assertEquals(ReservationStatus.CONFIRMED,
+                reservation.getStatus());
+
+        assertEquals(SeatStatus.SOLD,
+                reservation.getSeat().getStatus());
+
+        verify(seatRepository).save(any());
+        verify(reservationRepository).save(any());
+    }
+    
+    
+    @Test
+    void shouldCancelReservationSuccessfully() {
+
+        User user = createUser();
+        Reservation reservation = createReservation();
+        ReservationResponse response = createResponse();
+
+        AddSecurity();
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(reservationRepository.findById(RESERVATION_ID))
+                .thenReturn(Optional.of(reservation));
+
+        when(seatRepository.save(any())).thenReturn(reservation.getSeat());
+        when(reservationRepository.save(any())).thenReturn(reservation);
+        when(reservationMapper.toResponse(any())).thenReturn(response);
+
+        ReservationResponse result =
+                reservationServiceImpl.cancelReservation(RESERVATION_ID);
+
+        assertNotNull(result);
+        assertEquals(ReservationStatus.CANCELLED,
+                reservation.getStatus());
+
+        assertEquals(SeatStatus.AVAILABLE,
+                reservation.getSeat().getStatus());
+
+        verify(seatRepository).save(any());
+        verify(reservationRepository).save(any());
+    }
+
+    @Test
+    void shouldExpireReservationsSuccessfully() {
+
+        Reservation reservation = createReservation();
+        reservation.setExpiresAt(LocalDateTime.now().minusMinutes(1));
+
+        when(reservationRepository.findByStatusAndExpiresAtBefore(
+                eq(ReservationStatus.RESERVED),
+                any(LocalDateTime.class)))
+                .thenReturn(List.of(reservation));
+
+        reservationServiceImpl.expireReservations();
+
+        assertEquals(ReservationStatus.EXPIRED,
+                reservation.getStatus());
+
+        assertEquals(SeatStatus.AVAILABLE,
+                reservation.getSeat().getStatus());
+
+        verify(reservationRepository).saveAll(any());
+    }
+    
+    @Test
+    void shouldReserveThenConfirmSeatSuccessfully() {
+
+        ReservationCreateRequest request = createRequest();
+        Event event = createEvent();
+        Seat seat = createSeat();
+        User user = createUser();
+        Reservation reservation = createReservation();
+
+        AddSecurity();
+
+        when(reservationMapper.toEntity(request)).thenReturn(reservation);
+        when(eventRepository.findById(EVENT_ID)).thenReturn(Optional.of(event));
+        when(seatRepository.findById(SEAT_ID)).thenReturn(Optional.of(seat));
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(seatRepository.save(any())).thenReturn(seat);
+        when(reservationRepository.save(any())).thenReturn(reservation);
+
+        reservationServiceImpl.createReservation(request);
+
+        assertEquals(
+                ReservationStatus.RESERVED,
+                reservation.getStatus());
+
+        assertEquals(
+                SeatStatus.HELD,
+                reservation.getSeat().getStatus());
+
+        when(reservationRepository.findById(RESERVATION_ID))
+                .thenReturn(Optional.of(reservation));
+
+        reservationServiceImpl.confirmReservation(RESERVATION_ID);
+
+        assertEquals(
+                ReservationStatus.CONFIRMED,
+                reservation.getStatus());
+
+        assertEquals(
+                SeatStatus.SOLD,
+                reservation.getSeat().getStatus());
+    }
+
+    private SecurityContext AddSecurity() {
+    	
+    	 SecurityContext context = SecurityContextHolder.createEmptyContext();
+         context.setAuthentication(
+                 new UsernamePasswordAuthenticationToken(
+                         EMAIL,
+                         null,
+                         List.of(() -> "ROLE_USER")));
+
+         SecurityContextHolder.setContext(context);
+         
+         return context;
+    }
+    
+    private ReservationCreateRequest createRequest() {
+        ReservationCreateRequest request = new ReservationCreateRequest();
+        request.setEventId(EVENT_ID);
+        request.setSeatId(SEAT_ID);
+        return request;
+    }
+
+    private Reservation createReservation() {
+        Reservation reservation = new Reservation();
+        reservation.setId(RESERVATION_ID);
+        reservation.setStatus(ReservationStatus.RESERVED);
+        reservation.setExpiresAt(EXPIRES_AT);
+        reservation.setSeat(createSeat());
+        reservation.setEvent(createEvent());
+        reservation.setUser(createUser());
+        return reservation;
+    }
+
+    private User createUser() {
+        User user = new User();
+        user.setId(1L);
+        user.setEmail(EMAIL);
+        user.setName("Test User");
+        user.setPasswordHash("password");
+        user.setRole(Set.of(Role.USER));
+        return user;
+    }
+
+    private Seat createSeat() {
+        Seat seat = new Seat();
+        seat.setId(SEAT_ID);
+        seat.setSeatNumber("A1");
+        seat.setStatus(SeatStatus.AVAILABLE);
+        seat.setVersion(0L);
+        return seat;
+    }
+
+    private Event createEvent() {
+        Event event = new Event();
+        event.setId(EVENT_ID);
+        event.setName("Concert");
+        event.setAddress("Ankara");
+        event.setLocation("Arena");
+        event.setTicketPrice(BigDecimal.valueOf(500));
+        event.setEventDate(LocalDateTime.now().plusDays(5));
+        return event;
+    }
+
+    private ReservationResponse createResponse() {
+        ReservationResponse response = new ReservationResponse();
+        response.setId(RESERVATION_ID);
+        response.setEventId(EVENT_ID);
+        response.setSeatId(SEAT_ID);
+        response.setSeatNumber("A1");
+        response.setEventName("Concert");
+        response.setStatus(ReservationStatus.RESERVED);
+        response.setExpiresAt(EXPIRES_AT);
+        return response;
+    }
 }
