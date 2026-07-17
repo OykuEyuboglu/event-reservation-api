@@ -99,8 +99,6 @@ Using Swagger UI, you can:
 ### Swagger Endpoint List
 
 <img src="images/swagger-home.png" width="40%" alt="Swagger UI Preview"/>
-
-```
  
 ---
  
