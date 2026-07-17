@@ -12,7 +12,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import jakarta.servlet.http.HttpServletRequest;
 
 @RestControllerAdvice
@@ -97,7 +97,23 @@ public class GlobalExceptionHandler {
 		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
 	}
 
-	@ExceptionHandler(Exception.class)
+
+@ExceptionHandler(AuthorizationDeniedException.class)
+public ResponseEntity<ErrorResponse> handleAuthorizationDeniedException(
+        AuthorizationDeniedException exception,
+        HttpServletRequest request) {
+
+    ErrorResponse response = new ErrorResponse(
+            LocalDateTime.now(),
+            HttpStatus.FORBIDDEN.value(),
+            "Forbidden",
+            request.getRequestURI(),
+            exception.getMessage()
+    );
+
+    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+}
+
 	public ResponseEntity<ErrorResponse> handleGeneralException(
 
 			Exception exception, HttpServletRequest request) {
@@ -106,4 +122,5 @@ public class GlobalExceptionHandler {
 		
 		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
 	}
+	
 }
