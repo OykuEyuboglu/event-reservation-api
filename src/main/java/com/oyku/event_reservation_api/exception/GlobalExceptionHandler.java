@@ -12,6 +12,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -122,5 +123,4 @@ public ResponseEntity<ErrorResponse> handleAuthorizationDeniedException(
 		
 		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
 	}
-	
 }
