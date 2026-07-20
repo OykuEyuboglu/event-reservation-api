@@ -19,6 +19,7 @@ import com.oyku.event_reservation_api.entity.Seat;
 import com.oyku.event_reservation_api.entity.User;
 import com.oyku.event_reservation_api.enums.ReservationStatus;
 import com.oyku.event_reservation_api.enums.SeatStatus;
+import com.oyku.event_reservation_api.exception.BadRequestException;
 import com.oyku.event_reservation_api.exception.ConflictException;
 import com.oyku.event_reservation_api.exception.ForbiddenException;
 import com.oyku.event_reservation_api.exception.ResourceNotFoundException;
@@ -41,6 +42,8 @@ public class ReservationServiceImpl implements ReservationService {
 	private final EventRepository eventRepository;
 	private final ReservationMapper reservationMapper;
 
+	private static final int MAX_ACTIVE_RESERVATIONS = 5;
+	
 	private static final Logger LOGGER = LoggerFactory.getLogger(ReservationServiceImpl.class);
 
 	@Override
@@ -62,6 +65,13 @@ public class ReservationServiceImpl implements ReservationService {
 				throw new ConflictException("Seat is not available for reservation.");
 			}
 
+			long activeReservations = reservationRepository.countByUserAndStatus(user, ReservationStatus.RESERVED);
+			
+			if (activeReservations >= MAX_ACTIVE_RESERVATIONS) {
+				throw new BadRequestException("You can hold a maximum of 5 active reservations at the same time.");
+			}
+
+			
 			reservation.setSeat(seat);
 			reservation.setEvent(event);
 			reservation.setUser(user);
