@@ -17,6 +17,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import com.oyku.event_reservation_api.security.handler.CustomAccessDeniedHandler;
 import com.oyku.event_reservation_api.security.handler.CustomAuthenticationEntryPoint;
 import com.oyku.event_reservation_api.security.jwt.JwtAuthenticationFilter;
+import com.oyku.event_reservation_api.security.ratelimit.RateLimitingFilter;
 import com.oyku.event_reservation_api.security.service.CustomUserDetailsService;
 
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomAuthenticationEntryPoint authenticationEntryPoint;
     private final CustomAccessDeniedHandler accessDeniedHandler;
+    private final RateLimitingFilter rateLimitingFilter;
     
     @Bean PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -73,10 +75,11 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
 
                 .authenticationProvider(authenticationProvider())
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(rateLimitingFilter, JwtAuthenticationFilter.class)
 
                 .addFilterBefore(
-                        jwtAuthenticationFilter,
-                        UsernamePasswordAuthenticationFilter.class);
+                        rateLimitingFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
