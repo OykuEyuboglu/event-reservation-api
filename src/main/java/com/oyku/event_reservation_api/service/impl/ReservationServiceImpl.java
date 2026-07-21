@@ -24,6 +24,8 @@ import com.oyku.event_reservation_api.exception.ConflictException;
 import com.oyku.event_reservation_api.exception.ForbiddenException;
 import com.oyku.event_reservation_api.exception.ResourceNotFoundException;
 import com.oyku.event_reservation_api.mapper.ReservationMapper;
+import com.oyku.event_reservation_api.messaging.dto.ReservationMessage;
+import com.oyku.event_reservation_api.messaging.producer.ReservationProducer;
 import com.oyku.event_reservation_api.repository.EventRepository;
 import com.oyku.event_reservation_api.repository.ReservationRepository;
 import com.oyku.event_reservation_api.repository.SeatRepository;
@@ -41,9 +43,9 @@ public class ReservationServiceImpl implements ReservationService {
 	private final UserRepository userRepository;
 	private final EventRepository eventRepository;
 	private final ReservationMapper reservationMapper;
+	private final ReservationProducer reservationProducer;
 
 	private static final int MAX_ACTIVE_RESERVATIONS = 5;
-	
 	private static final Logger LOGGER = LoggerFactory.getLogger(ReservationServiceImpl.class);
 
 	@Override
@@ -83,6 +85,11 @@ public class ReservationServiceImpl implements ReservationService {
 			LOGGER.info("Seat updated");
 
 			Reservation savedReservation = reservationRepository.save(reservation);
+			
+			ReservationMessage message = ReservationMessage.builder().reservationId(savedReservation.getId()).eventId(savedReservation.getEvent().getId()).userId(savedReservation.getUser().getId()).build();
+			
+			reservationProducer.sendReservationCreated(message);
+			
 			LOGGER.info("Reservation created");
 			return reservationMapper.toResponse(savedReservation);
 
