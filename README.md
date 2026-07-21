@@ -2,8 +2,8 @@
  
 <div align="center">
  
-*A secure and scalable Event Reservation REST API built with Spring Boot, PostgreSQL, and Spring Security. The project demonstrates JWT authentication, role-based authorization, reservation management, optimistic locking for concurrency control, scheduled tasks, and comprehensive testing.*
- 
+*A secure and scalable Event Reservation REST API built with Spring Boot, PostgreSQL, Redis, RabbitMQ, Docker, and Spring Security. The project demonstrates JWT authentication, role-based authorization, Redis caching, Redis-based rate limiting, asynchronous messaging with RabbitMQ, optimistic locking for concurrency control, scheduled tasks, comprehensive testing, and code coverage analysis.*
+
 ![Java](https://img.shields.io/badge/Java-23-orange?style=for-the-badge&logo=openjdk)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x-6DB33F?style=for-the-badge&logo=springboot)
 ![Spring Security](https://img.shields.io/badge/Spring_Security-6DB33F?style=for-the-badge&logo=springsecurity)
@@ -14,7 +14,10 @@
 ![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger)
 ![JUnit5](https://img.shields.io/badge/JUnit5-25A162?style=for-the-badge&logo=junit5)
 ![Mockito](https://img.shields.io/badge/Mockito-78A641?style=for-the-badge)
- 
+![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis)
+![RabbitMQ](https://img.shields.io/badge/RabbitMQ-FF6600?style=for-the-badge&logo=rabbitmq)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker)
+
 </div>
 
 ---
@@ -27,8 +30,8 @@ The project follows a layered architecture and demonstrates modern backend devel
  
 Unlike the original internship project specification, which suggested Java 17 and MongoDB, this implementation uses **Java 23** and **PostgreSQL** together with **Spring Data JPA** and **Hibernate** to provide a relational database solution.
  
-The application allows administrators to manage events while authenticated users can reserve, confirm, and cancel reservations. To ensure data consistency, the system automatically expires inactive reservations and prevents concurrent seat bookings using JPA Optimistic Locking.
- 
+The application allows administrators to manage events while authenticated users can reserve, confirm, and cancel reservations. To improve performance, frequently accessed event data is cached using Redis. The API also includes Redis-based rate limiting to protect endpoints from excessive requests and integrates RabbitMQ for asynchronous reservation event processing. Data consistency is ensured through scheduled reservation expiration and JPA Optimistic Locking.
+
 ---
  
 # 🚀 Features
@@ -69,7 +72,29 @@ The application allows administrators to manage events while authenticated users
  
 - Prevents double booking using JPA Optimistic Locking (`@Version`)
 ---
- 
+
+## 🚀 Redis Caching
+
+- Cache frequently accessed event data
+- Automatic cache eviction on create, update and delete
+- Improved response performance
+---
+
+## 🛡 Rate Limiting
+
+- Redis-based IP rate limiting
+- Prevents excessive API requests
+- Returns HTTP 429 (Too Many Requests)
+---
+
+## 📨 RabbitMQ Messaging
+
+- Publishes reservation events asynchronously
+- Consumer processes messages independently
+- Decouples business logic from message processing
+- Improves scalability and responsiveness
+---
+  
 ## 🧪 Testing
  
 - Service layer unit tests using JUnit 5 and Mockito
@@ -79,6 +104,8 @@ The application allows administrators to manage events while authenticated users
 # 📑 API Documentation
  
 Swagger UI is integrated into the project for interactive API documentation.
+
+Swagger UI also allows authenticated requests using JWT Bearer tokens.
  
 After running the application, the documentation is available at:
  
@@ -98,8 +125,26 @@ Using Swagger UI, you can:
 
 ### Swagger Endpoint List
 
-<img src="images/swagger-home.png" width="40%" alt="Swagger UI Preview"/>
+<img src="images/swagger-home.png" width="50%" alt="Swagger UI Preview"/>
  
+---
+
+### RabbitMQ Management Dashboard
+
+Displays the configured queue together with producer and consumer activity during reservation processing.
+
+<img src="images/rabbitmq-dashboard.png" width="50%" alt="RabbitMQ Management Dashboard"/>
+
+---
+
+### JaCoCo Code Coverage
+
+Service layer code coverage generated using JaCoCo.
+
+<img src="images/jacoco-coverage1.png" width="40%" alt="JaCoCo Code Coverage"/>
+
+<img src="images/jacoco-coverage2.png" width="40%" alt="JaCoCo Code Coverage"/>
+
 ---
  
 # 🛠 Technology Stack
@@ -110,6 +155,8 @@ Using Swagger UI, you can:
 Java 23
 Spring Boot
 Spring MVC
+Spring AMQP
+Spring Cache
 Spring Data JPA
 Hibernate
 Spring Security
@@ -123,7 +170,14 @@ Jakarta Bean Validation
 PostgreSQL
 pgAdmin
 ```
- 
+
+ ## Caching
+
+```text
+Redis
+Spring Cache
+```
+
 ## Authentication
  
 ```text
@@ -137,6 +191,13 @@ BCrypt Password Encoder
 ```text
 Swagger / OpenAPI
 ```
+
+## Messaging
+
+```text
+RabbitMQ
+Spring AMQP
+```
  
 ## Testing
  
@@ -145,6 +206,7 @@ JUnit 5
 Mockito
 Spring Boot Test
 MockMvc
+JaCoCo
 ```
  
 ## Utilities
@@ -152,7 +214,7 @@ MockMvc
 ```text
 MapStruct
 Lombok
-Maven
+Docker
 SLF4J Logging
 ```
  
@@ -163,16 +225,28 @@ SLF4J Logging
 The project follows a layered architecture to ensure separation of concerns, maintainability, and scalability.
  
 ```text
-Controller
-      │
-      ▼
-Service
-      │
-      ▼
-Repository
-      │
-      ▼
-PostgreSQL Database
+                Client
+                   │
+                   ▼
+        Spring Security (JWT)
+                   │
+                   ▼
+      Redis Rate Limiting Filter
+                   │
+                   ▼
+              Controller
+                   │
+                   ▼
+                Service
+        ┌────────┼──────────────┐
+        ▼        ▼              ▼
+ Repository   Redis Cache   RabbitMQ Producer
+      │                         │
+      ▼                         ▼
+ PostgreSQL              RabbitMQ Queue
+                               │
+                               ▼
+                     Reservation Consumer
 ```
  
 Each layer has a single responsibility:
@@ -192,21 +266,25 @@ src
 └── main
     ├── java
     │   └── com.oyku.event_reservation_api
-    │       ├── config
     │       ├── controller
     │       ├── dto
     │       ├── entity
     │       ├── enums
     │       ├── exception
     │       ├── mapper
+    │       ├── messaging
+    │       │     ├── consumer
+    │       │     ├── dto
+    │       │     └── producer
     │       ├── repository
     │       ├── security
+    │       │     ├── config
+    │       │     ├── handler
     │       │     ├── jwt
-    │       │     └── config
+    │       │     ├── ratelimit
+    │       │     └── service
     │       ├── service
     │       │     └── impl
-    │       ├── scheduler
-    │       ├── validation
     │       └── EventReservationApiApplication.java
     │
     └── resources
@@ -219,35 +297,30 @@ src
  
 ```text
 Client
- 
-    │
- 
-    ▼
- 
+   │
+   ▼
+Rate Limiting (Redis)
+   │
+   ▼
+JWT Authentication
+   │
+   ▼
 Controller
- 
-    │
- 
-    ▼
- 
+   │
+   ▼
 Service
- 
-    │
- 
-    ▼
- 
+   │
+   ├────────► Redis Cache
+   │
+   ├────────► RabbitMQ Producer
+   │
+   ▼
 Repository
- 
-    │
- 
-    ▼
- 
-PostgreSQL Database
- 
-    │
- 
-    ▼
- 
+   │
+   ▼
+PostgreSQL
+   │
+   ▼
 Response DTO
 ```
  
@@ -338,6 +411,7 @@ A scheduled task periodically checks expired reservations and automatically:
 This ensures that seats are automatically released when users do not confirm their reservations.
  
 ---
+
  
 # 🧪 Testing
  
@@ -375,6 +449,14 @@ Integration tests verify:
 - Role-based authorization
 - ADMIN and USER permissions
 ---
+
+## Code Coverage
+
+The project uses **JaCoCo** to measure test coverage and evaluate the effectiveness of unit tests.
+
+Current service layer code coverage is approximately **85%**, covering core business logic, validation rules, and exception scenarios.
+
+---
  
 # ⚙️ Installation
  
@@ -383,6 +465,7 @@ Integration tests verify:
 - Java 23
 - Maven
 - PostgreSQL
+- Docker Desktop
 - pgAdmin (Optional)
 - IntelliJ IDEA or Eclipse
 ---
@@ -414,21 +497,65 @@ src/main/resources/application.properties
 Example:
  
 ```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/event_reservation_db
-spring.datasource.username=postgres
-spring.datasource.password=your_password
+spring.datasource.url=...
+spring.datasource.username=...
+spring.datasource.password=...
+
+spring.data.redis.host=localhost
+spring.data.redis.port=6379
+
+spring.rabbitmq.host=localhost
+spring.rabbitmq.port=5672
+spring.rabbitmq.username=guest
+spring.rabbitmq.password=guest
  
 spring.jpa.hibernate.ddl-auto=update
 ```
  
 ---
- 
+
+## 🐳 Running Infrastructure Services (Docker Services)
+
+The project uses Docker to run Redis and RabbitMQ services required for caching, rate limiting, and asynchronous messaging.
+
+## Start Redis
+
+```bash
+docker run -d --name redis -p 6379:6379 redis
+```
+
+## Start RabbitMQ
+
+```bash
+docker run -d \
+--hostname rabbit \
+--name rabbitmq \
+-p 5672:5672 \
+-p 15672:15672 \
+rabbitmq:3-management
+```
+
+After starting RabbitMQ, the Management UI is available at:
+
+```
+http://localhost:15672
+```
+
+Default credentials:
+
+```text
+Username: guest
+Password: guest
+```
+
+---
+
 ## Install Dependencies
- 
+
 ```bash
 mvn clean install
 ```
- 
+
 ---
  
 ## Run Application
@@ -474,8 +601,16 @@ This project demonstrates practical experience with:
 - Scheduled Tasks
 - Optimistic Locking
 - Concurrency Control
+- Redis
+- Spring Cache
+- Redis Rate Limiting
+- RabbitMQ
+- Asynchronous Messaging
+- Docker
+- Spring AMQP
 - Unit Testing with Mockito
 - Integration Testing with MockMvc
+- Code Coverage (JaCoCo)
 - Swagger / OpenAPI
 - SLF4J Logging
 - Clean Code Principles
