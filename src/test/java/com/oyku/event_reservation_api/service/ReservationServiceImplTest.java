@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -31,6 +32,7 @@ import com.oyku.event_reservation_api.enums.SeatStatus;
 import com.oyku.event_reservation_api.exception.ConflictException;
 import com.oyku.event_reservation_api.exception.ResourceNotFoundException;
 import com.oyku.event_reservation_api.mapper.ReservationMapper;
+import com.oyku.event_reservation_api.messaging.producer.ReservationProducer;
 import com.oyku.event_reservation_api.repository.EventRepository;
 import com.oyku.event_reservation_api.repository.ReservationRepository;
 import com.oyku.event_reservation_api.repository.SeatRepository;
@@ -54,6 +56,9 @@ class ReservationServiceImplTest {
 
     @Mock
     private ReservationMapper reservationMapper;
+    
+    @Mock
+    private ReservationProducer reservationProducer;
 
     @InjectMocks
     private ReservationServiceImpl reservationServiceImpl;
@@ -74,7 +79,7 @@ class ReservationServiceImplTest {
         Reservation reservation = createReservation();
         ReservationResponse response = createResponse();
 
-        AddSecurity();
+        addSecurity();
 
         when(reservationMapper.toEntity(request)).thenReturn(reservation);
         when(eventRepository.findById(EVENT_ID)).thenReturn(Optional.of(event));
@@ -97,7 +102,7 @@ class ReservationServiceImplTest {
         verify(userRepository).findByEmail(EMAIL);
         verify(seatRepository).save(any());
         verify(reservationRepository).save(any());
-        verify(reservationMapper).toResponse(any());
+        verify(reservationProducer).sendReservationCreated(any());
     }
 
     @Test
@@ -111,7 +116,7 @@ class ReservationServiceImplTest {
 
         seat.setStatus(SeatStatus.HELD);
 
-       AddSecurity();
+       addSecurity();
 
         when(reservationMapper.toEntity(request)).thenReturn(reservation);
         when(eventRepository.findById(EVENT_ID)).thenReturn(Optional.of(event));
@@ -137,7 +142,7 @@ class ReservationServiceImplTest {
         List<Reservation> reservations = List.of(reservation);
         List<ReservationResponse> responses = List.of(response);
 
-        AddSecurity();
+        addSecurity();
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
         when(reservationRepository.findByUser(user)).thenReturn(reservations);
@@ -199,7 +204,7 @@ class ReservationServiceImplTest {
         ReservationResponse response = createResponse();
         response.setStatus(ReservationStatus.CONFIRMED);
         
-        AddSecurity();
+        addSecurity();
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
         when(reservationRepository.findById(RESERVATION_ID))
@@ -233,7 +238,7 @@ class ReservationServiceImplTest {
         Reservation reservation = createReservation();
         ReservationResponse response = createResponse();
 
-        AddSecurity();
+        addSecurity();
 
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
         when(reservationRepository.findById(RESERVATION_ID))
@@ -288,7 +293,7 @@ class ReservationServiceImplTest {
         User user = createUser();
         Reservation reservation = createReservation();
 
-        AddSecurity();
+        addSecurity();
 
         when(reservationMapper.toEntity(request)).thenReturn(reservation);
         when(eventRepository.findById(EVENT_ID)).thenReturn(Optional.of(event));
@@ -321,7 +326,7 @@ class ReservationServiceImplTest {
                 reservation.getSeat().getStatus());
     }
 
-    private SecurityContext AddSecurity() {
+    private SecurityContext addSecurity() {
     	
     	 SecurityContext context = SecurityContextHolder.createEmptyContext();
          context.setAuthentication(
@@ -333,6 +338,11 @@ class ReservationServiceImplTest {
          SecurityContextHolder.setContext(context);
          
          return context;
+    }
+    
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
     
     private ReservationCreateRequest createRequest() {

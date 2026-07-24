@@ -20,37 +20,46 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
 	private final StringRedisTemplate redisTemplate;
 
-	private static final int MAX_REQUESTS = 10;
+	private static final int MAX_REQUESTS = 200;
 	private static final int WINDOW_SECONDS = 60;
 
 	@Override
-	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-			throws ServletException, IOException {
-		String ip = request.getRemoteAddr();
-		String key = "rate_limit:" + ip;
+	protected void doFilterInternal(HttpServletRequest request,
+	                                HttpServletResponse response,
+	                                FilterChain filterChain)
+	        throws ServletException, IOException {
 
-		Long requestCount = redisTemplate.opsForValue().increment(key);
-		
-	if (requestCount == 1) {
+	    String path = request.getRequestURI();
 
-			redisTemplate.expire(key, Duration.ofSeconds(WINDOW_SECONDS));
-		}
+	    if (path.startsWith("/swagger-ui")
+	            || path.startsWith("/v3/api-docs")) {
+	        filterChain.doFilter(request, response);
+	        return;
+	    }
 
-		if (requestCount > MAX_REQUESTS) {
-		    response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-		    response.setContentType("application/json");
-		    response.getWriter().write("""
-		        {
-		          "status":429,
-		          "error":"Too Many Requests",
-		          "message":"Too many requests. Please try again later."
-		        }
-		        """);
-		    return;
-		}
-		
-	
-		filterChain.doFilter(request, response);
+	    String ip = request.getRemoteAddr();
+	    String key = "rate_limit:" + ip;
+
+	    Long requestCount = redisTemplate.opsForValue().increment(key);
+
+	    if (requestCount == 1) {
+	        redisTemplate.expire(key, Duration.ofSeconds(WINDOW_SECONDS));
+	    }
+
+	    if (requestCount > MAX_REQUESTS) {
+	        response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+	        response.setContentType("application/json");
+	        response.getWriter().write("""
+	            {
+	              "status":429,
+	              "error":"Too Many Requests",
+	              "message":"Too many requests. Please try again later."
+	            }
+	            """);
+	        return;
+	    }
+
+	    filterChain.doFilter(request, response);
 	}
 
 }
