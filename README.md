@@ -176,7 +176,7 @@ Service layer code coverage generated using JaCoCo.
 ## Backend
  
 ```text
-Java 23
+Java
 Spring Boot
 Spring MVC
 Spring AMQP
@@ -531,7 +531,7 @@ Current service layer code coverage is approximately **75%**, covering core busi
 
 Before running the application, make sure the following tools are installed:
 
-- Java 23
+- Java
 - Maven
 - Docker Desktop
 - Docker Compose
