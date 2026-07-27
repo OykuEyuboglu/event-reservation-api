@@ -20,7 +20,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
 	private final StringRedisTemplate redisTemplate;
 
-	private static final int MAX_REQUESTS = 200;
+	private static final int MAX_REQUESTS = 400;
 	private static final int WINDOW_SECONDS = 60;
 
 	@Override
@@ -30,18 +30,30 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 	        throws ServletException, IOException {
 
 	    String path = request.getRequestURI();
+	    
+		    if (path.startsWith("/swagger-ui")
+	            || path.startsWith("/v3/api-docs")
+	            || path.startsWith("/swagger-ui.html")
+	            || path.startsWith("/actuator")) {
 
-	    if (path.startsWith("/swagger-ui")
-	            || path.startsWith("/v3/api-docs")) {
 	        filterChain.doFilter(request, response);
 	        return;
 	    }
 
-	    String ip = request.getRemoteAddr();
-	    String key = "rate_limit:" + ip;
-
-	    Long requestCount = redisTemplate.opsForValue().increment(key);
-
+		    String ip = request.getRemoteAddr();
+		    String key = "rate_limit:" + ip;
+		    Long requestCount = redisTemplate.opsForValue().increment(key);
+		    
+		    System.out.println(
+		    	    "RATE LIMIT FILTER ÇALIŞTI -> " 
+		    	    + request.getRequestURI()
+		    	    + " COUNT: "
+		    	    + requestCount
+		    	);
+		    System.out.println("CLIENT IP: " + ip);
+		    
+		    
+		    
 	    if (requestCount == 1) {
 	        redisTemplate.expire(key, Duration.ofSeconds(WINDOW_SECONDS));
 	    }
@@ -63,3 +75,6 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 	}
 
 }
+
+
+
