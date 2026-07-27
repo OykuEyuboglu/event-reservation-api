@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: event-reservation-api
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: event-reservation-api
+
+  template:
+    metadata:
+      labels:
+        app: event-reservation-api
+
+    spec:
+      containers:
+        - name: event-reservation-api
+          image: event-reservation-api:latest
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 8080
+
+          env:
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: event-api-config
+                  key: SPRING_DATASOURCE_URL
+
+            - name: SPRING_DATASOURCE_USERNAME
+              value: postgres
+
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: postgres
+
+            - name: SPRING_DATA_REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: event-api-config
+                  key: SPRING_DATA_REDIS_HOST
+
+            - name: SPRING_DATA_REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: event-api-config
+                  key: SPRING_DATA_REDIS_PORT
+
+            - name: SPRING_RABBITMQ_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: event-api-config
+                  key: SPRING_RABBITMQ_HOST
+
+            - name: SPRING_RABBITMQ_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: event-api-config
+                  key: SPRING_RABBITMQ_PORT
+
+            - name: SPRING_RABBITMQ_USERNAME
+              value: guest
+
+            - name: SPRING_RABBITMQ_PASSWORD
+              value: guest
