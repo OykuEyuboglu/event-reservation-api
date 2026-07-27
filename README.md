@@ -4,7 +4,7 @@
  
 *A secure and scalable Event Reservation REST API built with Spring Boot, PostgreSQL, Redis, RabbitMQ, Docker, and Spring Security. The project demonstrates JWT authentication, role-based authorization, Redis caching, Redis-based rate limiting, asynchronous messaging with RabbitMQ, optimistic locking for concurrency control, scheduled tasks, comprehensive testing, and code coverage analysis.*
 
-![Java](https://img.shields.io/badge/Java-23-orange?style=for-the-badge&logo=openjdk)
+![Java](https://img.shields.io/badge/Java-orange?style=for-the-badge&logo=openjdk)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x-6DB33F?style=for-the-badge&logo=springboot)
 ![Spring Security](https://img.shields.io/badge/Spring_Security-6DB33F?style=for-the-badge&logo=springsecurity)
 ![JWT](https://img.shields.io/badge/JWT-Authentication-black?style=for-the-badge&logo=jsonwebtokens)
@@ -17,6 +17,8 @@
 ![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis)
 ![RabbitMQ](https://img.shields.io/badge/RabbitMQ-FF6600?style=for-the-badge&logo=rabbitmq)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker)
+![Docker Compose](https://img.shields.io/badge/Docker_Compose-2496ED?style=for-the-badge&logo=docker)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes)
 
 </div>
 
@@ -28,10 +30,13 @@ Spring Boot Event Reservation API is a RESTful backend application developed for
  
 The project follows a layered architecture and demonstrates modern backend development concepts including JWT authentication, role-based authorization, DTO mapping, validation, global exception handling, scheduled tasks, optimistic locking, and comprehensive testing.
  
-Unlike the original internship project specification, which suggested Java 17 and MongoDB, this implementation uses **Java 23** and **PostgreSQL** together with **Spring Data JPA** and **Hibernate** to provide a relational database solution.
+The application allows administrators to manage events while authenticated users can reserve, confirm, and cancel reservations. To improve performance, frequently accessed event data is cached using Redis. The API also includes Redis-based rate limiting to protect endpoints from excessive requests and integrates RabbitMQ for asynchronous reservation event processing.
  
-The application allows administrators to manage events while authenticated users can reserve, confirm, and cancel reservations. To improve performance, frequently accessed event data is cached using Redis. The API also includes Redis-based rate limiting to protect endpoints from excessive requests and integrates RabbitMQ for asynchronous reservation event processing. Data consistency is ensured through scheduled reservation expiration and JPA Optimistic Locking.
-
+The application infrastructure is fully containerized using Docker and Docker Compose for local development environments. PostgreSQL, Redis, and RabbitMQ services can be started together through Docker Compose with configured networking and persistent database storage.
+ 
+For container orchestration and deployment scenarios, Kubernetes manifests are provided to run the complete backend infrastructure inside a Kubernetes cluster. The application, PostgreSQL, Redis, and RabbitMQ services are deployed using Kubernetes Deployments and Services, enabling container lifecycle management, internal service communication, and scalable deployment.
+ 
+Data consistency is ensured through scheduled reservation expiration and JPA Optimistic Locking.
 ---
  
 # 🚀 Features
@@ -137,6 +142,25 @@ Displays the configured queue together with producer and consumer activity durin
 
 ---
 
+## 🐳 Docker Containerization
+
+- Application is packaged as a Docker image
+- Docker Compose configuration is provided for local infrastructure setup
+- PostgreSQL, Redis, and RabbitMQ services run as containers
+- Persistent PostgreSQL storage is configured using Docker volumes
+- Services communicate through Docker networking
+---
+
+## ☸️ Kubernetes Deployment
+
+- Kubernetes manifests are provided for container orchestration
+- Backend application runs inside Kubernetes Deployment
+- PostgreSQL, Redis, and RabbitMQ are deployed as separate services
+- Kubernetes Services enable internal service communication
+- Application updates are managed using Kubernetes rollout strategies
+- Local Kubernetes cluster deployment is tested using Docker Desktop Kubernetes
+---
+
 ### JaCoCo Code Coverage
 
 Service layer code coverage generated using JaCoCo.
@@ -214,10 +238,25 @@ JaCoCo
 ```text
 MapStruct
 Lombok
-Docker
 SLF4J Logging
 ```
+
+## Infrastructure & Deployment
  
+```text
+Docker
+Docker Compose
+Docker Image
+Docker Container
+Docker Networking
+Docker Volumes
+Kubernetes
+Kubernetes Deployment
+Kubernetes Services
+Kubernetes Pods
+Kubernetes Configurations
+```
+
 ---
  
 # 🏗 Project Architecture
@@ -225,32 +264,41 @@ SLF4J Logging
 The project follows a layered architecture to ensure separation of concerns, maintainability, and scalability.
  
 ```text
-                Client
-                   │
-                   ▼
-        Spring Security (JWT)
-                   │
-                   ▼
-      Redis Rate Limiting Filter
-                   │
-                   ▼
-              Controller
-                   │
-                   ▼
-                Service
-        ┌────────┼──────────────┐
-        ▼        ▼              ▼
- Repository   Redis Cache   RabbitMQ Producer
-      │                         │
-      ▼                         ▼
- PostgreSQL              RabbitMQ Queue
-                               │
-                               ▼
-                     Reservation Consumer
+                         Client
+                            │
+                            ▼
+                  Kubernetes Service
+                            │
+                            ▼
+          Event Reservation API Deployment
+                            │
+                            ▼
+                  Application Pod
+                            │
+                            ▼
+              Spring Security (JWT)
+                            │
+                            ▼
+              Redis Rate Limiting Filter
+                            │
+                            ▼
+                       Controller
+                            │
+                            ▼
+                        Service
+              ┌─────────────┼──────────────┐
+              ▼             ▼              ▼
+        Repository     Redis Cache    RabbitMQ Producer
+              │                            │
+              ▼                            ▼
+        PostgreSQL Pod              RabbitMQ Queue
+                                           │
+                                           ▼
+                              Reservation Consumer
 ```
  
-Each layer has a single responsibility:
- 
+The application infrastructure is separated into independent containerized services. Docker Compose provides a local development environment, while Kubernetes manages deployment, networking, and lifecycle of application components inside the cluster.
+
 - **Controller** → Handles HTTP requests and responses.
 - **Service** → Contains business logic.
 - **Repository** → Performs database operations.
@@ -286,6 +334,17 @@ src
     │       ├── service
     │       │     └── impl
     │       └── EventReservationApiApplication.java
+    ├── Dockerfile
+    ├── docker-compose.yml
+    ├── k8s
+    │   ├── event-api-deployment.yaml
+    │   ├── event-api-service.yaml
+    │   ├── postgres-deployment.yaml
+    │   ├── postgres-service.yaml
+    │   ├── redis-deployment.yaml
+    │   ├── redis-service.yaml
+    │   ├── rabbitmq-deployment.yaml
+    │   └── rabbitmq-service.yaml
     │
     └── resources
           └── application.properties
@@ -297,6 +356,12 @@ src
  
 ```text
 Client
+   │
+   ▼
+Kubernetes Service
+   │
+   ▼
+Event Reservation API Container
    │
    ▼
 Rate Limiting (Redis)
@@ -318,7 +383,7 @@ Service
 Repository
    │
    ▼
-PostgreSQL
+PostgreSQL Container
    │
    ▼
 Response DTO
@@ -416,6 +481,8 @@ This ensures that seats are automatically released when users do not confirm the
 # 🧪 Testing
  
 The project includes both unit and integration tests to ensure application reliability and security.
+
+The application has also been verified inside a Kubernetes environment to ensure successful startup, database connectivity, cache communication, and message broker integration.
  
 ## Unit Testing
  
@@ -454,48 +521,120 @@ Integration tests verify:
 
 The project uses **JaCoCo** to measure test coverage and evaluate the effectiveness of unit tests.
 
-Current service layer code coverage is approximately **85%**, covering core business logic, validation rules, and exception scenarios.
+Current service layer code coverage is approximately **75%**, covering core business logic, validation rules, and exception scenarios.
 
 ---
  
 # ⚙️ Installation
- 
+
 ## Prerequisites
- 
+
+Before running the application, make sure the following tools are installed:
+
 - Java 23
 - Maven
-- PostgreSQL
 - Docker Desktop
-- pgAdmin (Optional)
+- Docker Compose
+- Kubernetes
+- kubectl
 - IntelliJ IDEA or Eclipse
+
 ---
- 
+
 ## Clone Repository
- 
+
 ```bash
 git clone https://github.com/OykuEyuboglu/event-reservation-api.git
 ```
- 
+
 ---
- 
+
 ## Navigate to Project
- 
+
 ```bash
 cd event-reservation-api
 ```
- 
+
 ---
- 
-## Configure Database
- 
-Update the database configuration inside:
- 
+
+# 🐳 Docker Deployment
+
+The project provides Docker support for running the complete backend infrastructure in a local development environment.
+
+Docker is used for:
+
+- Containerized Spring Boot application deployment
+- PostgreSQL database container
+- Redis cache and rate limiting service
+- RabbitMQ message broker
+- Persistent storage management using Docker volumes
+- Service communication through Docker networking
+
+The local infrastructure can be started using Docker Compose.
+
+The Docker Compose configuration is defined in:
+
+```
+docker-compose.yml
+```
+
+The Docker Compose setup includes:
+
+- PostgreSQL container with persistent database storage
+- Redis container for caching and rate limiting
+- RabbitMQ container for asynchronous messaging
+- Configured network communication between services
+
+---
+
+## Start Services with Docker Compose
+
+Run:
+
+```bash
+docker compose up -d
+```
+
+This command starts all required infrastructure services as isolated containers.
+
+To check running containers:
+
+```bash
+docker ps
+```
+
+To view container logs:
+
+```bash
+docker compose logs
+```
+
+To stop all Docker Compose services:
+
+```bash
+docker compose down
+```
+
+To remove containers together with volumes:
+
+```bash
+docker compose down -v
+```
+
+---
+
+# 🗄 Database Configuration
+
+The application uses PostgreSQL as the relational database.
+
+Database configuration is managed through:
+
 ```
 src/main/resources/application.properties
 ```
- 
-Example:
- 
+
+Example configuration:
+
 ```properties
 spring.datasource.url=...
 spring.datasource.username=...
@@ -508,34 +647,166 @@ spring.rabbitmq.host=localhost
 spring.rabbitmq.port=5672
 spring.rabbitmq.username=guest
 spring.rabbitmq.password=guest
- 
+
 spring.jpa.hibernate.ddl-auto=update
 ```
- 
+
 ---
 
-## 🐳 Running Infrastructure Services (Docker Services)
+# ☸️ Kubernetes Deployment
 
-The project uses Docker to run Redis and RabbitMQ services required for caching, rate limiting, and asynchronous messaging.
+The project also includes Kubernetes deployment configurations for running the complete backend infrastructure inside a Kubernetes cluster.
 
-## Start Redis
+Kubernetes manages:
 
-```bash
-docker run -d --name redis -p 6379:6379 redis
+- Application deployment
+- PostgreSQL database
+- Redis cache service
+- RabbitMQ message broker
+- Internal service communication
+
+Kubernetes manifests are located under:
+
+```
+k8s/
 ```
 
-## Start RabbitMQ
+---
 
-```bash
-docker run -d \
---hostname rabbit \
---name rabbitmq \
--p 5672:5672 \
--p 15672:15672 \
-rabbitmq:3-management
+## Kubernetes Resources
+
+The project contains Kubernetes configurations for:
+
+```
+k8s
+├── event-api-deployment.yaml
+├── event-api-service.yaml
+├── postgres-deployment.yaml
+├── postgres-service.yaml
+├── redis-deployment.yaml
+├── redis-service.yaml
+├── rabbitmq-deployment.yaml
+└── rabbitmq-service.yaml
 ```
 
-After starting RabbitMQ, the Management UI is available at:
+---
+
+## Build Application Image
+
+Before deploying to Kubernetes, create the Docker image:
+
+```bash
+mvn clean package -DskipTests
+```
+
+Build Docker image:
+
+```bash
+docker build -t event-reservation-api:latest .
+```
+
+---
+
+## Deploy Application to Kubernetes
+
+Apply Kubernetes configurations:
+
+```bash
+kubectl apply -f k8s/
+```
+
+Check running pods:
+
+```bash
+kubectl get pods
+```
+
+Expected services:
+
+```
+event-reservation-api
+postgres
+redis
+rabbitmq
+```
+
+---
+
+## Update Kubernetes Deployment
+
+After making application changes:
+
+Build the new application:
+
+```bash
+mvn clean package -DskipTests
+```
+
+Create the updated Docker image:
+
+```bash
+docker build -t event-reservation-api:latest .
+```
+
+Restart Kubernetes deployment:
+
+```bash
+kubectl rollout restart deployment event-reservation-api
+```
+
+Verify deployment status:
+
+```bash
+kubectl get pods
+```
+
+---
+
+# 📦 Install Dependencies
+
+Install Maven dependencies:
+
+```bash
+mvn clean install
+```
+
+---
+
+# ▶️ Run Application Locally
+
+Start the Spring Boot application:
+
+```bash
+mvn spring-boot:run
+```
+
+The application starts at:
+
+```
+http://localhost:8080
+```
+
+---
+
+# 📑 Open Swagger UI
+
+Swagger documentation is available at:
+
+```
+http://localhost:8080/swagger-ui/index.html
+```
+
+Swagger UI allows:
+
+- Viewing all REST endpoints
+- Testing API requests
+- Sending authenticated requests using JWT Bearer tokens
+
+---
+
+# 🐰 RabbitMQ Management UI
+
+RabbitMQ management dashboard:
 
 ```
 http://localhost:15672
@@ -543,47 +814,43 @@ http://localhost:15672
 
 Default credentials:
 
-```text
+```
 Username: guest
 Password: guest
 ```
 
 ---
 
-## Install Dependencies
+# 🔍 Useful Kubernetes Commands
+
+Check all resources:
 
 ```bash
-mvn clean install
+kubectl get all
 ```
 
----
- 
-## Run Application
- 
+View application logs:
+
 ```bash
-mvn spring-boot:run
+kubectl logs deployment/event-reservation-api
 ```
- 
-The application starts at:
- 
+
+Access PostgreSQL container:
+
+```bash
+kubectl exec -it postgres-pod-name -- psql -U postgres
 ```
-http://localhost:8080
+
+Delete Kubernetes resources:
+
+```bash
+kubectl delete -f k8s/
 ```
- 
----
- 
-## Open Swagger UI
- 
-```
-http://localhost:8080/swagger-ui/index.html
-```
- 
----
  
 # 📚 Key Concepts Covered
  
-This project demonstrates practical experience with:
- 
+This project demonstrates practical experience with modern backend development and deployment practices:
+
 - Spring Boot
 - Spring MVC
 - Spring Data JPA
@@ -607,6 +874,12 @@ This project demonstrates practical experience with:
 - RabbitMQ
 - Asynchronous Messaging
 - Docker
+- Docker Compose
+- Containerized Application Deployment
+- Kubernetes
+- Kubernetes Deployment
+- Kubernetes Services
+- Kubernetes Resource Management
 - Spring AMQP
 - Unit Testing with Mockito
 - Integration Testing with MockMvc
